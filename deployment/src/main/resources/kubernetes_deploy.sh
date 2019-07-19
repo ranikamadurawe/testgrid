@@ -39,6 +39,59 @@ no_yamls=${#deploymentYamlFiles[@]}
 dep=($exposedDeployments)
 dep_num=${#dep[@]}
 
+#Add persistant volume disks to yaml files if user has specified
+function enrich_yaml(){
+        i=0;
+        for ((i=0; i<$no_yamls; i++));
+        do
+		input=$yamlFilesLocation/${deploymentYamlFiles[$i]}
+        deploymentfound=false
+        containersfound=false
+        volumemountfound=false
+        volumesfound=false
+
+		while IFS= read -r line
+		do
+			    cat >> deployment_temp.yaml << EOF
+${line}
+EOF
+    	if [[ $line == *"kind: Deployment"* ]]; then
+	      echo "$line"
+	        deploymentfound=true
+    	fi
+	    if [[ $line == *"containers:"* ]]; then
+	        echo "$line"
+	        containersfound=true
+    	fi
+	    if [[ $line == *"volumes:"* ]]; then
+	        echo "$line"
+	        volumesfound=true
+	    fi
+	    if [[ $line == *"volumeMounts:"* ]]; then
+	        echo "$line"
+	        volumemountfound=true
+	    fi
+        if  [[ "$deploymentfound" == true ]] &&  [[ "$containersfound" == true ]] && [[ "$volumemountfound" == true ]] ; then
+		    cat  >> deployment_temp.yaml << EOF
+            - name: logfilesmount
+              mountPath: /home/user/path/to/destination
+EOF
+			volumemountfound=false
+	    fi
+	    if [[ "$volumesfound" == true ]]; then
+		    cat  >> deployment_temp.yaml << EOF
+        - name: logfilesmount
+          PersistentVolumeClaim:
+              claimName: testgridclaim
+EOF
+		    volumesfound=0
+	    fi
+	    done < "$input"
+		rm $yamlFilesLocation/${deploymentYamlFiles[$i]}
+		mv deployment_temp.yaml $yamlFilesLocation/${deploymentYamlFiles[$i]}
+	done
+}
+
 function create_k8s_resources() {
 
     if [ -z $deploymentYamlFiles ]
@@ -79,8 +132,8 @@ function create_k8s_resources() {
 tlskeySecret=testgrid-certs
 ingressName=tg-ingress
 kubectl create secret tls ${tlskeySecret} \
-    --cert deploymentRepository/keys/testgrid-certs-v2.crt  \
-    --key deploymentRepository/keys/testgrid-certs-v2.key -n $namespace
+    --cert $INPUT_DIR/testgrid-certs-v2.crt  \
+    --key $INPUT_DIR/testgrid-certs-v2.key -n $namespace
 
     cat > ${ingressName}.yaml << EOF
 apiVersion: extensions/v1beta1
@@ -248,5 +301,8 @@ echo
 #DEBUG parameters: TODO: remove
 TESTGRID_ENVIRONMENT=dev
 
+if $logslocation ; then
+	enrich_yaml
+fi
 create_k8s_resources
 add_route53_entry
