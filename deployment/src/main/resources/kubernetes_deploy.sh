@@ -84,7 +84,7 @@ EOF
           PersistentVolumeClaim:
               claimName: testgridclaim
 EOF
-		    volumesfound=0
+		    volumesfound=false
 	    fi
 	    done < "$input"
 		rm $yamlFilesLocation/${deploymentYamlFiles[$i]}
@@ -302,7 +302,10 @@ echo
 TESTGRID_ENVIRONMENT=dev
 
 if $logslocation ; then
+    echo "Test logs path given changing deployment.yaml"
 	enrich_yaml
+else
+    echo "No path given will not be able to download log files later"
 fi
 create_k8s_resources
 add_route53_entry
