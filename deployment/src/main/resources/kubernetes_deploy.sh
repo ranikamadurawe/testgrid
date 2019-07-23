@@ -41,6 +41,7 @@ dep_num=${#dep[@]}
 
 #Add persistant volume disks to yaml files if user has specified
 function enrich_yaml(){
+        set +x
         i=0;
         for ((i=0; i<$no_yamls; i++));
         do
@@ -56,19 +57,15 @@ function enrich_yaml(){
 ${line}
 EOF
     	if [[ $line == *"kind: Deployment"* ]]; then
-	      echo "$line"
 	        deploymentfound=true
     	fi
 	    if [[ $line == *"containers:"* ]]; then
-	        echo "$line"
 	        containersfound=true
     	fi
 	    if [[ $line == *"volumes:"* ]]; then
-	        echo "$line"
 	        volumesfound=true
 	    fi
 	    if [[ $line == *"volumeMounts:"* ]]; then
-	        echo "$line"
 	        volumemountfound=true
 	    fi
         if  [[ "$deploymentfound" == true ]] &&  [[ "$containersfound" == true ]] && [[ "$volumemountfound" == true ]] ; then
@@ -87,6 +84,7 @@ EOF
 		    volumesfound=false
 	    fi
 	    done < "$input"
+	    set -x
 		rm $yamlFilesLocation/${deploymentYamlFiles[$i]}
 		mv deployment_temp.yaml $yamlFilesLocation/${deploymentYamlFiles[$i]}
 	done
