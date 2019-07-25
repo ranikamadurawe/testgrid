@@ -59,6 +59,12 @@ echo "Starting Xvfb virtual display for chart generation"
 export DISPLAY=:95
 nohup Xvfb :95 -screen 0 1024x768x16 > /dev/null 2>&1 &
 
+
+# Installing Groovy v2.4.3
+curl -s get.sdkman.io | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install groovy 2.4.3
+
 # Changing the testgrid home ownership
 chown -R ubuntu:ubuntu ${TESTGRID_HOME}
 
