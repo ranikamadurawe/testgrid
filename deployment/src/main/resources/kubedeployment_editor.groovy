@@ -53,29 +53,31 @@ def AddNewItem(Map variable, String propertyName , Object new_Value){
  * @return
  */
 
-def Formattedfilepaths(JSONArray loglocations, Integer i){
+def Formattedfilepaths(JSONArray loglocations, Integer i, Integer j){
 
     String containerFilepath
     String sidecarFilepath
-    if( loglocations.getJSONObject(i).get("path").toString().startsWith('/')
-            && loglocations.getJSONObject(i).get("path").toString().endsWith('/') ){
-        containerFilepath = loglocations.getJSONObject(i).get("path")
+    System.out.println(loglocations.getJSONObject(i).get("path"))
+    System.out.println(loglocations.getJSONObject(i).get("path")[j])
+    if( loglocations.getJSONObject(i).get("path")[j].toString().startsWith('/')
+            && loglocations.getJSONObject(i).get("path")[j].toString().endsWith('/') ){
+        containerFilepath = loglocations.getJSONObject(i).get("path")[j]
         sidecarFilepath = ("/opt/tests/"+loglocations.getJSONObject(i).get("deploymentname")+"/"+
-                loglocations.getJSONObject(i).get("containername")+loglocations.getJSONObject(i).get("path"))
-    }else if( loglocations.getJSONObject(i).get("path").toString().startsWith('/')
-            && !loglocations.getJSONObject(i).get("path").toString().endsWith('/') ){
-        containerFilepath = loglocations.getJSONObject(i).get("path")+"/"
+                loglocations.getJSONObject(i).get("containername")+loglocations.getJSONObject(i).get("path")[j])
+    }else if( loglocations.getJSONObject(i).get("path")[j].toString().startsWith('/')
+            && !loglocations.getJSONObject(i).get("path")[j].toString().endsWith('/')){
+        containerFilepath = loglocations.getJSONObject(i).get("path")[j]+"/"
         sidecarFilepath = ("/opt/tests/"+loglocations.getJSONObject(i).get("deploymentname")+"/"+
-                loglocations.getJSONObject(i).get("containername")+loglocations.getJSONObject(i).get("path")+"/")
-    }else if( !loglocations.getJSONObject(i).get("path").toString().startsWith('/')
-            && loglocations.getJSONObject(i).get("path").toString().endsWith('/') ){
-        containerFilepath = "/"+loglocations.getJSONObject(i).get("path")
+                loglocations.getJSONObject(i).get("containername")+loglocations.getJSONObject(i).get("path")[j])+"/"
+    }else if( !loglocations.getJSONObject(i).get("path")[j].toString().startsWith('/')
+            && loglocations.getJSONObject(i).get("path")[j].toString().endsWith('/') ){
+        containerFilepath = "/"+loglocations.getJSONObject(i).get("path")[j]
         sidecarFilepath = ("/opt/tests/"+loglocations.getJSONObject(i).get("deploymentname")+"/"+
-                loglocations.getJSONObject(i).get("containername")+"/"+loglocations.getJSONObject(i).get("path"))
+                loglocations.getJSONObject(i).get("containername")+"/"+loglocations.getJSONObject(i).get("path")[j])
     }else{
-        containerFilepath = "/"+loglocations.getJSONObject(i).get("path")+"/"
+        containerFilepath = "/"+loglocations.getJSONObject(i).get("path")[j]+"/"
         sidecarFilepath = ("/opt/tests/"+loglocations.getJSONObject(i).get("deploymentname")+"/"+
-                loglocations.getJSONObject(i).get("containername")+"/"+loglocations.getJSONObject(i).get("path")+"/")
+                loglocations.getJSONObject(i).get("containername")+"/"+loglocations.getJSONObject(i).get("path")[j])+"/"
     }
     return [ containerFilepath, sidecarFilepath ]
 
@@ -128,25 +130,25 @@ def EditK8SDeployments(String outputYaml,String jsonFilePath, String pathToDeplo
                     String CommandString = ""
 
 
-                        for ( Map container in group.get("spec").get("template").get("spec").get("containers")){
+                    for ( Map container in group.get("spec").get("template").get("spec").get("containers")){
 
-                            int i = 0
-                            boolean matchfound = false
-                            // For each container check if a log file location has been provided in the json file
-                            for (; i < loglocations.length(); i++) {
-                                JSONObject temp = loglocations.getJSONObject(i)
-                                // When found break the loop
-                                if(temp.getString("deploymentname") == depmeta.get("name")
-                                        && temp.getString("containername") == container.get("name") ) {
-                                    hasSidecarbeenAdded = true
-                                    matchfound = true
-                                    break
-                                }
+                        int i = 0
+                        boolean matchfound = false
+                        // For each container check if a log file location has been provided in the json file
+                        for (; i < loglocations.length(); i++) {
+                            JSONObject temp = loglocations.getJSONObject(i)
+                            // When found break the loop
+                            if(temp.getString("deploymentname") == depmeta.get("name")
+                                    && temp.getString("containername") == container.get("name") ) {
+                                hasSidecarbeenAdded = true
+                                matchfound = true
+                                break
                             }
-                            // If a match is found enter the updated container into the list
-                            if (matchfound){
-
-                                List formattedPaths = Formattedfilepaths(loglocations,i)
+                        }
+                        // If a match is found enter the updated container into the list
+                        if (matchfound){
+                            for (int j=0; j<loglocations.getJSONObject(i).get("path").length();j++) {
+                                List formattedPaths = Formattedfilepaths(loglocations,i,j)
                                 String containerFilepath = formattedPaths[0]
                                 String sidecarFilepath = formattedPaths[1]
 
@@ -160,16 +162,18 @@ def EditK8SDeployments(String outputYaml,String jsonFilePath, String pathToDeplo
                                 CommandString = ( CommandString + "echo executearchive "+ sidecarFilepath +
                                         " logfilesmount"+ logcontainers+ " " +
                                         loglocations.getJSONObject(i).get("deploymentname") + " " +
-                                        loglocations.getJSONObject(i).get("containername") +" >> log_archiver.sh &&"
+                                        loglocations.getJSONObject(i).get("containername") +" >> log_archiver.sh && "
                                 )
+                                AddNewItem(container,"volumeMounts",new_VolumeMount)
 
-                                newcontainerlist.add(AddNewItem(container,"volumeMounts",new_VolumeMount))
                                 logcontainers++
-                            }else{
-                                //Add container as it is
-                                newcontainerlist.add(container)
                             }
+                            newcontainerlist.add(container)
+                        }else{
+                            //Add container as it is
+                            newcontainerlist.add(container)
                         }
+                    }
 
 
                     group.get("spec").get("template").get("spec").put("containers", newcontainerlist)
@@ -180,8 +184,8 @@ def EditK8SDeployments(String outputYaml,String jsonFilePath, String pathToDeplo
                         /*
                         Change to persistent disk claim if using persistent disk
                          */
-                        Map emptyMap = [:]
                         for (int j = 0; j<logcontainers;j++){
+                            Map emptyMap = [:]
                             Map new_Volume = ["name": "logfilesmount"+j , "emptyDir": emptyMap ]
                             group.get("spec").get("template").put("spec",AddNewItem(
                                     (Map)group.get("spec").get("template").get("spec"),"volumes",new_Volume))
