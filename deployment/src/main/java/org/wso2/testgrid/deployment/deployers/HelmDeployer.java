@@ -20,6 +20,7 @@ package org.wso2.testgrid.deployment.deployers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.testgrid.common.Deployer;
+import org.wso2.testgrid.common.config.ConfigurationContext;
 import org.wso2.testgrid.common.DeploymentCreationResult;
 import org.wso2.testgrid.common.InfrastructureProvisionResult;
 import org.wso2.testgrid.common.TestGridConstants;
@@ -31,6 +32,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
+import java.util.Map;
+import java.util.Properties;
+import org.yaml.snakeyaml.*;
 
 /**
  * This class performs Kubernetes related deployment tasks using helm. This class is used to deploy
@@ -62,6 +67,15 @@ public class HelmDeployer implements Deployer {
                                            InfrastructureProvisionResult infrastructureProvisionResult,
                                            Script script)
             throws TestGridDeployerException {
+
+        if (script.getInputParameters().containsKey(TestGridConstants.HELM_ESENDPOINT_PARAM_NAME) &&
+                script.getInputParameters().containsKey(TestGridConstants.HELM_VALUES_YAML_PARAM_NAME)) {
+            editESEndPoint(script.getInputParameters().get(TestGridConstants.HELM_ESENDPOINT_PARAM_NAME).toString()
+                    , ConfigurationContext.getProperty(ConfigurationContext.ConfigurationProperties.
+                            ELASTICSEARCH_ENDPOINT), testPlan, script.getInputParameters());
+        } else {
+            logger.info("Elastic Search Parameters not set cannot edit values.yaml");
+        }
         String deployRepositoryLocation = Paths.get(testPlan.getDeploymentRepository()).toString();
 
         InputStream resourceFileStream = getClass().getClassLoader()
@@ -79,5 +93,14 @@ public class HelmDeployer implements Deployer {
                 Paths.get(deployRepositoryLocation, TestGridConstants.HELM_DEPLOY_SCRIPT));
 
         return deploymentCreationResult;
+    }
+
+    private void editESEndPoint(String epPropName, String endPointVal, TestPlan testPlan, Map scriptParams){
+        Yaml yaml = new Yaml();
+        InputStream inputStream = this.getClass()
+                .getClassLoader()
+                .getResourceAsStream(testPlan.getDeploymentRepository().concat(scriptParams.get("valuesYaml").toString()));
+        Map<String, Object> valuesYaml = yaml.load(inputStream);
+
     }
 }

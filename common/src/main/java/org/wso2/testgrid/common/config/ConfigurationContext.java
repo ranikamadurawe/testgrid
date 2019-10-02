@@ -74,10 +74,13 @@ public class ConfigurationContext {
      */
     public enum ConfigurationProperties {
 
+
+
         /**
          * Database URL propertyName
          */
         DB_URL("DB_URL"),
+
 
         /**
          * Database user propertyName
@@ -267,7 +270,12 @@ public class ConfigurationContext {
         /**
          * Repeateble json string section of all logs
          */
-        REPEATABLE_ALL_LOGS_JSON("REPEATABLE_ALL_LOGS_JSON");
+        REPEATABLE_ALL_LOGS_JSON("REPEATABLE_ALL_LOGS_JSON"),
+
+        /**
+         * Elastic Search EndPoint
+         */
+        ELASTICSEARCH_ENDPOINT("ELASTICSEARCH_EP");
 
         private String propertyName;
 
