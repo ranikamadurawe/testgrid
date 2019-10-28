@@ -241,8 +241,6 @@ echo
 
 
 
-
-
 # Read a property file to a given associative array
 #
 # $1 - Property file
