@@ -89,7 +89,7 @@ def Formattedfilepaths(JSONArray loglocations, Integer i){
  * @param pathToDeployment - file path to the input Yaml file
  *
  */
-def EditK8SDeployments(String outputYaml,String jsonFilePath, String pathToDeployment){
+def createPodPreset(String logPathConfYamlLoc, String depInJSONFilePath, String depType, String esEndpoint, String depRepo){
     try{
         // Read json file
         InputStream is = new FileInputStream(jsonFilePath.toString())
@@ -223,19 +223,70 @@ def EditK8SDeployments(String outputYaml,String jsonFilePath, String pathToDeplo
                                 (Map)group.get("spec").get("template").get("spec"),"containers",new_Container))
                     }
 
-                }
-                yaml.dump(group,fileWriter)
-                fileWriter.write("---\n\n")
+        JSONObject logOptions = depInJSON.getJSONObject("dep-in").getJSONObject("log-Options");
+        String logRequirment = logOptions.getString("logRequirement")
 
+        if (logRequirment.equals("Sidecar-Required")) {
+            JSONArray loglocations = logOptions.getJSONObject("logFileLocations")
+            Yaml yaml = new Yaml()
+
+            FileWriter fileWriter = new FileWriter(logPathConfYamlLoc)
+
+            if (loglocations.length() != 0){
+                List logpathConf = []
+                for (JSONObject logLocation in loglocations) {
+                    String formatFilePath = Formattedfilepaths(logLocation.getString("path"))
+                    Map entry = ["name" : logLocation.getString("deploymentname") + "-" +
+                            logLocation.getString("containername") , "path" : formatFilePath]
+                    logpathConf.add( entry )
+                }
+                Map logconf = [ "loglocs" : logpathConf]
+                Yaml logpathConfYaml = new Yaml()
+                logpathConfYaml.dump(logconf)
+                yaml.dump(logpathConfYaml,fileWriter)
+                println("True")
+            }else{
+                println("False")
             }
-        }else{
-            println("no log file paths provided in parameter")
+            fileWriter.close()
+            return
+        } else if ( logRequirment.equals("esEndpoint-Required") ) {
+            if (depType.equals("helm")) {
+                String valuesYamlLoc = logOptions.getString("valuesYamlLocation");
+                String esEndPointEditLoc = logOptions.getString("esEndpointLoc");
+                InputStreamReader valuesYamlInputStream = new FileInputStream(depRepo + valuesYamlLoc);
+                Yaml yaml = new Yaml()
+                Map valuesYaml = yaml.load(valuesYamlInputStream)
+                List<String> pathToesEndPoint = esEndPointEditLoc.split("/")
+                Map esEndPointMap = valuesYaml
+                String key;
+                for ( int i = 0 ; i < pathToesEndPoint.size() -1 ;  i++ ) {
+                    key = pathToesEndPoint[i];
+                    esEndPointMap = esEndPointMap[key]
+                }
+                esEndPointMap[pathToesEndPoint[pathToesEndPoint.size()-1]] = esEndpoint
+                println("False")
+                return
+            } else if ( depType.equals("k8s")) {
+                FileWriter fileWriter = new FileWriter(logPathConfYamlLoc)
+                Yaml yaml = new Yaml()
+                Yaml logpathConfYaml = new Yaml()
+                Map logconf = [ "onlyes":true ]
+                logpathConfYaml.dump(logconf)
+                yaml.dump(logpathConfYaml,fileWriter)
+                println("True")
+                fileWriter.close()
+                return
+            }
+        } else if ( logRequirment.equals("None") ) {
+            println("False")
+            return
         }
 
         fileWriter.close()
 
     }catch(RuntimeException e){
-        println(e)
+        println("False")
     }
 }
 

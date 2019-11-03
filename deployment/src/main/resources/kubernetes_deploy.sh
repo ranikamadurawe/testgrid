@@ -23,7 +23,20 @@ set -o xtrace
 #The created resources will be exposed using an Ingress to the external usage
 #
 
-
+function edit_deployments() {
+  sidecarReq=$(groovy kubedeployment_editor.groovy "${infra_props["depRepoLoc"]}/testgrid-sidecar/deployment/logstash-details.yaml" "${OUTPUT_DIR}/params.json" k8s ${infra_props["esEP"]} ${infra_props["depRepoLoc"]})
+  if [[ "$sidecarReq" != "True" ]]
+  then
+    kubectl label namespace ${namespace} namespace=${namespace}
+    kubectl label namespace ${namespace} sidecar-injector=enabled
+    kubectl create configmap --dry-run logpath-config --from-file=./testgrid-sidecar/deployment/logstash-details.yaml --output yaml | tee ./testgrid-sidecar/deployment/logpath-configmap.yaml
+    chmod 777 ./testgrid-sidecar/create.sh
+    chmod 777 ./testgrid-sidecar/deployment/patchnamespace.sh
+    chmod 777 ./testgrid-sidecar/deployment/webhook-create-signed-cert.sh
+    chmod 777 ./testgrid-sidecar/deployment/webhook-patch-ca-bundle.sh
+    ./testgrid-sidecar/create.sh ${namespace}
+  fi
+}
 
 function create_k8s_resources() {
 
