@@ -146,18 +146,6 @@ public class DeployPhase extends Phase {
                 .resolve(DataBucketsHelper.DEPL_OUT_FILE);
 
         Properties additionalDepProps = new Properties();
-        InputStream configinput = null;
-        try {
-            configinput = new FileInputStream(TestGridUtil.getConfigFilePath().toString());
-            Properties config = new Properties();
-            config.load(configinput);
-            if (config.containsKey("TESTGRID_ENVIRONMENT")) {
-                additionalDepProps.setProperty("env", config.getProperty("TESTGRID_ENVIRONMENT"));
-            }
-            if (config.containsKey("TESTGRID_PASSWORD")) {
-                additionalDepProps.setProperty("pass", config.getProperty("TESTGRID_PASSWORD"));
-            }
-            additionalDepProps.setProperty("DEPLOYMENT_TINKERER_EP", config.getProperty("DEPLOYMENT_TINKERER_EP"));
         additionalDepProps.setProperty("depRepoLoc", getTestPlan().getDeploymentRepository());
         if (ConfigurationContext.getProperty(ConfigurationContext.
                 ConfigurationProperties.AWS_REGION_NAME) != null) {
