@@ -281,8 +281,6 @@ echo
 
 
 
-
-
 # Read a property file to a given associative array
 #
 # $1 - Property file
@@ -329,9 +327,17 @@ namespace=${infra_props["namespace"]}
 yamlFilesLocation=${infra_props["yamlFilesLocation"]}
 deploymentRepositoryLocation=${infra_props["deploymentRepositoryLocation"]}
 loadBalancerHostName=${deploy_props["loadBalancerHostName"]}
+logOptions=${infra_props["log-Options"]}
 
-#DEBUG parameters: TODO: remove
-TESTGRID_ENVIRONMENT=dev
+TESTGRID_ENVIRONMENT=${infra_props["env"]}
+TESTGRID_PASS=${infra_props["pass"]}
+ETC_HOSTS=/etc/hosts
+
+if [ -z "$logOptions" ]; then
+    echo "No Logging capabilities are set"
+else
+    edit_deployments
+fi
 
 create_k8s_resources
 add_route53_entry

@@ -319,12 +319,17 @@ dep_num=${#dep[@]}
 namespace=${infra_props["namespace"]}
 yamlFilesLocation=${infra_props["yamlFilesLocation"]}
 loadBalancerHostName=${deploy_props["loadBalancerHostName"]}
-LogFileLocations=${infra_props["LogFileLocations"]}
+logOptions=${infra_props["log-Options"]}
 
 TESTGRID_ENVIRONMENT=${infra_props["env"]}
 TESTGRID_PASS=${infra_props["pass"]}
 ETC_HOSTS=/etc/hosts
 
+if [ -z "$logOptions" ]; then
+    echo "No Logging capabilities are set"
+else
+    edit_deployments
+fi
 
 create_k8s_resources
 add_route53_entry
